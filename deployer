@@ -1,0 +1,46 @@
+#!/bin/sh
+
+CMD=$1
+USAGE="$(basename "$0") -- helps you to get your files updated on a remote host
+
+commands:
+    [h, help]       show this help output
+
+    [u, update]     update the origin to the given target (just like using rsync directly
+                    usage: deplayer [u, update] [origin] [target]
+
+    [r, register]   (NOT IMPLEMENTED!) save deploy information to ease future use
+                    usage: deployer [r, register] [tag] [origin] [target]
+                    
+    [a, access]     connect the user to the remote host via ssh. a register tag com be used for the target.
+                    usage deployer [a, access] [target]"
+
+case "$CMD" in
+    h | help)
+        echo "$USAGE"
+        exit
+        ;;
+    a | access)
+        ssh $2
+        ;;
+    u | update)
+        origin=$2
+        target=$3
+        cd "$origin"
+        if [ "$origin" ] && [ "$target"]; then
+            if [ -d ".git" ]; then
+                branch=$(git branch | sed -n -e 's/^\* \(.*\)/\1/p')
+                read -p "Your SERVER branch is $branch! Send it to 172.16.16.$SERVER? (y/N)" -s -n1 key
+                if [ "$key" == "Y" ] || [ "$key" == "y" ] ; then
+                    rsync -av --include=*.py --cvs-exclude --exclude=".git/" --exclude="tests/end2end-tests" . "$target"
+                fi
+                exit
+            fi
+            rsync -av --include=*.py --cvs-exclude --exclude=".git/" --exclude="tests/end2end-tests" . "$target"
+            exit
+        fi
+        echo "no origin and target specified!"
+        ;;
+    *)
+        echo "invalid command. type 'deployer help'."
+esac
